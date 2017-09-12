@@ -140,7 +140,7 @@ class KNearestNeighbor(object):
       # A list of length k storing the labels of the k nearest neighbors to
       # the ith test point.
       closest_y = self.y_train[np.argsort(dists[i])[:k]]
-      y_pred[i] = np.argmax(np.bincounter(closest_y))
+      y_pred[i] = np.argmax(np.bincount(closest_y))
 
     return y_pred
 
