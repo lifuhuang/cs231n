@@ -268,6 +268,9 @@ class FullyConnectedNet(object):
 
             output, cache[f'relu{i}'] = relu_forward(output)
 
+            if self.use_dropout:
+                output, cache[f'dropout{i}'] = dropout_forward(output, self.dropout_param)
+
         output, cache[f'affine{self.num_layers}'] = affine_forward(
             output, 
             self.params[f'W{self.num_layers}'],
@@ -307,6 +310,9 @@ class FullyConnectedNet(object):
         grads[f'b{self.num_layers}'] = db
 
         for i in range(self.num_layers - 1, 0, -1):
+            if self.use_dropout:
+                dout = dropout_backward(dout, cache[f'dropout{i}'])
+
             dout = relu_backward(dout, cache[f'relu{i}'])
             if self.use_batchnorm:
                 dout, dgamma, dbeta = batchnorm_backward(dout, cache[f'bn{i}'])
