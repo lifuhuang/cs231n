@@ -137,7 +137,30 @@ class CaptioningRNN(object):
         # defined above to store loss and gradients; grads[k] should give the      #
         # gradients for self.params[k].                                            #
         ############################################################################
-        pass
+        h0 = features @ W_proj + b_proj
+        x, cache_x = word_embedding_forward(captions_in, W_embed)
+
+        if self.cell_type == 'rnn':
+            h, cache_h = rnn_forward(x, h0, Wx, Wh, b)
+        else:
+            pass
+
+        y, cache_y = temporal_affine_forward(h, W_vocab, b_vocab)
+
+        loss, delta = temporal_softmax_loss(y, captions_out, mask)
+
+
+        dh, grads['W_vocab'], grads['b_vocab'] = temporal_affine_backward(delta, cache_y)
+
+        if self.cell_type == 'rnn':
+            dx, dh0, grads['Wx'], grads['Wh'], grads['b'] = rnn_backward(dh, cache_h)
+        else:
+            pass
+
+        grads['W_embed'] = word_embedding_backward(dx, cache_x)
+        grads['W_proj'] = features.T @ dh0
+        grads['b_proj'] = np.sum(dh0, axis=0)
+
         ############################################################################
         #                             END OF YOUR CODE                             #
         ############################################################################
@@ -199,7 +222,21 @@ class CaptioningRNN(object):
         # functions; you'll need to call rnn_step_forward or lstm_step_forward in #
         # a loop.                                                                 #
         ###########################################################################
-        pass
+        h = features @ W_proj + b_proj
+
+        if self.cell_type == 'rnn':
+            step_func = rnn_step_forward
+        else:
+            pass
+
+        last_word = [self._start] * N
+        for i in range(max_length):
+            x = W_embed[last_word, :]
+            h, _ = step_func(x, h, Wx, Wh, b)
+            y = h @ W_vocab + b_vocab
+            captions[:, i] = np.argmax(y, axis=1)
+            last_word = captions[:, i]
+
         ############################################################################
         #                             END OF YOUR CODE                             #
         ############################################################################
