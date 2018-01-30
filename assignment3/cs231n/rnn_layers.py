@@ -398,26 +398,27 @@ def lstm_backward(dh, cache):
     # TODO: Implement the backward pass for an LSTM over an entire timeseries.  #
     # You should use the lstm_step_backward function that you just defined.     #
     #############################################################################
-    N, T, H = dx.shape
-    dnext_h = np.zeros((N, H))
+
+    N, T, H = dh.shape
+    D = cache[0][-1].shape[0]
+
+    dprev_h = np.zeros((N, H))
+    dprev_c = np.zeros((N, H))
     dxs = []
-    dWxs = []
-    dWhs = []
-    dbs = []
+    dWx = np.zeros((D, 4 * H))
+    dWh = np.zeros((H, 4 * H))
+    db = np.zeros(4 * H)
 
     for i in range(T, 0, -1):
-        dxi, dnext_h, dWxi, dWhi, dbi = rnn_step_backward(dh[:, i - 1, :] + dnext_h, cache[i - 1])
+        dx_i, dprev_h, dprev_c, dWx_i, dWh_i, db_i = lstm_step_backward(dh[:, i - 1, :] + dprev_h, dprev_c, cache[i - 1])
 
-        dxs.append(dxi)
-        dWxs.append(dWxi)
-        dWhs.append(dWhi)
-        dbs.append(dbi)
+        dxs.append(dx_i)
+        dWx += dWx_i
+        dWh += dWh_i
+        db += db_i
 
     dx = np.stack(dxs[::-1], axis=1)
-    dWx = sum(dWxs)
-    dWh = sum(dWhs)
-    db = sum(dbs)
-    dh0 = dnext_h
+    dh0 = dprev_h
     ##############################################################################
     #                               END OF YOUR CODE                             #
     ##############################################################################
