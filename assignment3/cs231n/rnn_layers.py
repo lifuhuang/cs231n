@@ -263,7 +263,16 @@ def lstm_step_forward(x, prev_h, prev_c, Wx, Wh, b):
     # TODO: Implement the forward pass for a single timestep of an LSTM.        #
     # You may want to use the numerically stable sigmoid implementation above.  #
     #############################################################################
-    pass
+    N, H = prev_h.shape
+
+    z = prev_h @ Wh + x @ Wx + b
+    a_i, a_f, a_o, a_g = sigmoid(z[:, :H]), sigmoid(z[:, H:2*H]), sigmoid(z[:, 2*H:3*H]), np.tanh(z[:, 3*H:4*H])
+
+    next_c = a_f * prev_c + a_i * a_g
+    tanh_c = np.tanh(next_c)
+    next_h = tanh_c * a_o
+
+    cache = a_i, a_f, a_o, a_g, tanh_c, prev_c, prev_h, x, Wh, Wx
     ##############################################################################
     #                               END OF YOUR CODE                             #
     ##############################################################################
@@ -288,14 +297,34 @@ def lstm_step_backward(dnext_h, dnext_c, cache):
     - dWh: Gradient of hidden-to-hidden weights, of shape (H, 4H)
     - db: Gradient of biases, of shape (4H,)
     """
-    dx, dh, dc, dWx, dWh, db = None, None, None, None, None, None
+    dx, dprev_h, dprev_c, dWx, dWh, db = None, None, None, None, None, None
     #############################################################################
     # TODO: Implement the backward pass for a single timestep of an LSTM.       #
     #                                                                           #
     # HINT: For sigmoid and tanh you can compute local derivatives in terms of  #
     # the output value from the nonlinearity.                                   #
     #############################################################################
-    pass
+    a_i, a_f, a_o, a_g, tanh_c, prev_c, prev_h, x, Wh, Wx = cache
+
+    dtanh_c = dnext_h * a_o
+    dnext_c = dnext_c + (1 - tanh_c ** 2) * dtanh_c
+
+    da_i = dnext_c * a_g
+    da_f = dnext_c * prev_c
+    da_o = dnext_h * tanh_c
+    da_g = dnext_c * a_i
+
+    dz = np.hstack((da_i * a_i * (1 - a_i),
+                    da_f * a_f * (1 - a_f),
+                    da_o * a_o * (1 - a_o),
+                    da_g * (1 - a_g ** 2)))
+
+    db = np.sum(dz, axis=0)
+    dWh = prev_h.T @ dz
+    dWx = x.T @ dz
+    dprev_h = dz @ Wh.T
+    dx = dz @ Wx.T
+    dprev_c = dnext_c * a_f
     ##############################################################################
     #                               END OF YOUR CODE                             #
     ##############################################################################
@@ -330,7 +359,18 @@ def lstm_forward(x, h0, Wx, Wh, b):
     # TODO: Implement the forward pass for an LSTM over an entire timeseries.   #
     # You should use the lstm_step_forward function that you just defined.      #
     #############################################################################
-    pass
+    N, H = h0.shape
+    _, T, D = x.shape
+
+    hs = [h0] + [None] * T
+    c = np.zeros((N, H))
+    cache = [None] * T
+
+    for t in range(1, T + 1):
+        hs[t], c, cache[t - 1] = lstm_step_forward(x[:, t-1, :], hs[t-1], c, Wx, Wh, b)
+
+    h = np.stack(hs[1:], axis=1)
+
     ##############################################################################
     #                               END OF YOUR CODE                             #
     ##############################################################################
@@ -358,7 +398,26 @@ def lstm_backward(dh, cache):
     # TODO: Implement the backward pass for an LSTM over an entire timeseries.  #
     # You should use the lstm_step_backward function that you just defined.     #
     #############################################################################
-    pass
+    N, T, H = dx.shape
+    dnext_h = np.zeros((N, H))
+    dxs = []
+    dWxs = []
+    dWhs = []
+    dbs = []
+
+    for i in range(T, 0, -1):
+        dxi, dnext_h, dWxi, dWhi, dbi = rnn_step_backward(dh[:, i - 1, :] + dnext_h, cache[i - 1])
+
+        dxs.append(dxi)
+        dWxs.append(dWxi)
+        dWhs.append(dWhi)
+        dbs.append(dbi)
+
+    dx = np.stack(dxs[::-1], axis=1)
+    dWx = sum(dWxs)
+    dWh = sum(dWhs)
+    db = sum(dbs)
+    dh0 = dnext_h
     ##############################################################################
     #                               END OF YOUR CODE                             #
     ##############################################################################
