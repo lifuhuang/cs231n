@@ -1,6 +1,6 @@
 # [CS231n: Convolutional Neural Networks for Visual Recognition][1]
 
-My solutions to assignments in CS231n (2017 Spring). Completed in PyTorch for all the parts that require using symbol compute frameworks.
+My solutions to assignments in CS231n (2017 Spring). PyTorch is used for all the parts that require using symbol computing frameworks.
 
 ## Trouble shooting for setting up the environment.
 
