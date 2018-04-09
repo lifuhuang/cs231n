@@ -1,4 +1,8 @@
-Trouble shooting for setting up the environment.
+# [CS231n: Convolutional Neural Networks for Visual Recognition][1]
+
+My solutions to assignments in CS231n (2017 Spring). Completed in PyTorch for all the parts that require using symbol compute frameworks.
+
+## Trouble shooting for setting up the environment.
 
 > sudo apt-get install 
 
@@ -7,3 +11,6 @@ Trouble shooting for setting up the environment.
 > sudo easy_install greenlet
 
 > sudo easy_install gevent
+
+
+[1]: http://cs231n.stanford.edu/
